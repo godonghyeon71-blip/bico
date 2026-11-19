@@ -521,6 +521,7 @@
       padding: 12px 14px;
       border-radius: var(--radius-sm);
       font-size: 0.86rem;
+      white-space: pre-line;
     }
 
     /* Bottom Composer */
@@ -846,11 +847,11 @@
       </div>
 
       <div class="form-group">
-        <label class="form-label" for="model-select">사용 모델</label>
+        <label class="form-label" for="model-select">사용 모델 (무료 티어 지원)</label>
         <select id="model-select" class="form-select">
-          <option value="gemini-2.5-flash">gemini-2.5-flash (권장 · 빠르고 정확함)</option>
-          <option value="gemini-2.5-pro">gemini-2.5-pro (심층 생물정보학 분석)</option>
-          <option value="gemini-2.0-flash">gemini-2.0-flash (대체 모델)</option>
+          <option value="gemini-3.8-flash">gemini-3.8-flash (권장 · 고성능 Flash)</option>
+          <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite (초고속 · 경량)</option>
+          <option value="gemini-4-hydrogen">gemini-4-hydrogen (최신 4세대 모델)</option>
         </select>
       </div>
 
@@ -870,6 +871,12 @@
 
       const STORAGE_KEY_API = 'bico_gemini_api_key';
       const STORAGE_KEY_MODEL = 'bico_gemini_model';
+      const DEFAULT_MODEL = 'gemini-3.8-flash';
+      const ALLOWED_MODELS = [
+        'gemini-3.8-flash',
+        'gemini-3.5-flash-lite',
+        'gemini-4-hydrogen'
+      ];
       const NOT_FOUND_MSG = '지정된 3개 데이터베이스에서 해당 정보를 찾을 수 없습니다.';
       const NON_BIO_MSG = '안녕하세요, 바이오 전문 AI **바이코(BiCo)**입니다.\n\n저는 생명과학, 유전체, 단백질, 분자생물학 및 생물정보학 분야의 질문에만 전문적으로 답변하도록 설계되어 있습니다. 관심 있는 유전자, 단백질, 생물학적 기전이나 질환 관련 질문을 입력해 주시면 EMBL-EBI, UniProt, NCBI 공식 데이터베이스를 실시간으로 조회해 답변해 드리겠습니다.';
 
@@ -903,7 +910,12 @@
       }
 
       function getModel() {
-        return localStorage.getItem(STORAGE_KEY_MODEL) || 'gemini-2.5-flash';
+        const saved = localStorage.getItem(STORAGE_KEY_MODEL);
+        if (saved && ALLOWED_MODELS.includes(saved)) {
+          return saved;
+        }
+        localStorage.setItem(STORAGE_KEY_MODEL, DEFAULT_MODEL);
+        return DEFAULT_MODEL;
       }
 
       function updateSettingsButtonState() {
@@ -964,7 +976,7 @@
         }
       }
 
-      // Lightweight Safe Markdown Renderer (Supports Headings, Lists, Tables, Bold, Code, Safe Links)
+      // Lightweight Safe Markdown Renderer
       function renderMarkdown(mdText) {
         const lines = String(mdText || '').replace(/\r\n/g, '\n').split('\n');
         let html = '';
@@ -972,13 +984,9 @@
 
         function formatInline(text) {
           let safe = escapeHtml(text);
-          // Inline code
           safe = safe.replace(/`([^`]+)`/g, '<code>$1</code>');
-          // Bold
           safe = safe.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-          // Italic
           safe = safe.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-          // Markdown links (strictly https only)
           safe = safe.replace(/\[([^\]]+)\]\((https:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
           return safe;
         }
@@ -1006,7 +1014,7 @@
                 .map((cell) => cell.trim());
 
             const headers = parseRow(line);
-            i += 2; // Skip header and separator
+            i += 2;
             const bodyRows = [];
             while (i < lines.length && lines[i].trim().startsWith('|')) {
               bodyRows.push(parseRow(lines[i]));
@@ -1029,7 +1037,6 @@
             continue;
           }
 
-          // Headings
           if (line.startsWith('### ')) {
             html += `<h3>${formatInline(line.slice(4))}</h3>`;
             i++;
@@ -1046,7 +1053,6 @@
             continue;
           }
 
-          // Unordered List
           if (/^[-*]\s+/.test(line)) {
             html += '<ul>';
             while (i < lines.length && /^[-*]\s+/.test(lines[i].trim())) {
@@ -1057,7 +1063,6 @@
             continue;
           }
 
-          // Ordered List
           if (/^\d+\.\s+/.test(line)) {
             html += '<ol>';
             while (i < lines.length && /^\d+\.\s+/.test(lines[i].trim())) {
@@ -1068,7 +1073,6 @@
             continue;
           }
 
-          // Paragraph
           const paraLines = [];
           while (
             i < lines.length &&
@@ -1087,8 +1091,8 @@
         return html;
       }
 
-      // Gemini API Caller
-      async function callGemini({ systemInstruction, userPrompt, jsonMode = false, temperature = 0.2 }) {
+      // Gemini API Caller (Compatible with Gemini 3.8 Flash & Gemini 4 models)
+      async function callGemini({ systemInstruction, userPrompt, jsonMode = false }) {
         const apiKey = getApiKey();
         const model = getModel();
         if (!apiKey) {
@@ -1105,14 +1109,13 @@
               role: 'user',
               parts: [{ text: userPrompt }]
             }
-          ],
-          generationConfig: {
-            temperature
-          }
+          ]
         };
 
         if (jsonMode) {
-          payload.generationConfig.responseMimeType = 'application/json';
+          payload.generationConfig = {
+            responseMimeType: 'application/json'
+          };
         }
 
         const res = await fetchWithTimeout(
@@ -1125,16 +1128,23 @@
             },
             body: JSON.stringify(payload)
           },
-          25000
+          45000
         );
 
         const data = await res.json();
         if (!res.ok) {
           const msg = data?.error?.message || `HTTP ${res.status}`;
-          throw new Error(`Gemini API 오류: ${msg}`);
+          throw new Error(`Gemini API 오류 (${model}): ${msg}`);
         }
 
-        const text = data?.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('') || '';
+        const parts = data?.candidates?.[0]?.content?.parts || [];
+        let text = parts
+          .filter((p) => !p.thought && typeof p.text === 'string')
+          .map((p) => p.text)
+          .join('');
+        if (!text) {
+          text = parts.map((p) => p.text || '').join('');
+        }
         return text.trim();
       }
 
@@ -1165,8 +1175,7 @@ Rules:
         const raw = await callGemini({
           systemInstruction,
           userPrompt,
-          jsonMode: true,
-          temperature: 0.1
+          jsonMode: true
         });
 
         const cleaned = raw.replace(/^```json\s*/i, '').replace(/```$/i, '').trim();
@@ -1191,7 +1200,6 @@ Rules:
         }
 
         try {
-          // Prioritize Swiss-Prot reviewed entries first
           let rows = await runSearch(`(${primaryQuery}) AND reviewed:true`);
           if (rows.length === 0) {
             rows = await runSearch(primaryQuery);
@@ -1451,14 +1459,12 @@ Rules:
         }
 
         try {
-          // Prefer human gene records first if relevant, then general gene search
           let geneRecords = await searchGene(primaryQuery);
           if (geneRecords.length === 0 && fallbackQuery && fallbackQuery !== primaryQuery) {
             geneRecords = await searchGene(fallbackQuery);
           }
           records.push(...geneRecords.slice(0, 2));
 
-          // Add PMC literature if gene records are fewer than 2 (staggered slightly for NCBI rate limit)
           if (records.length < 2) {
             await new Promise((r) => setTimeout(r, 350));
             const pmcRecords = await searchPMC(primaryQuery);
@@ -1503,8 +1509,7 @@ ${contextText}`;
         return await callGemini({
           systemInstruction,
           userPrompt,
-          jsonMode: false,
-          temperature: 0.15
+          jsonMode: false
         });
       }
 
@@ -1610,7 +1615,6 @@ ${contextText}`;
         const assistantMsgEl = createAssistantPlaceholder();
 
         try {
-          // 1. Intent check & keyword extraction
           const routing = await analyzeQuery(question);
 
           if (!routing.is_bio) {
@@ -1625,7 +1629,6 @@ ${contextText}`;
           const primaryQuery = (routing.primary_query || question).trim();
           const fallbackQuery = (routing.fallback_query || primaryQuery).trim();
 
-          // 2. Real-time parallel fetch from ONLY EBI, UniProt, NCBI
           updatePlaceholderStatus(
             assistantMsgEl,
             `EBI · UniProt · NCBI 실시간 조회 중 ("${primaryQuery}")...`
@@ -1639,7 +1642,6 @@ ${contextText}`;
 
           const allRecords = [...uniprotRecords, ...ncbiRecords, ...ebiRecords];
 
-          // Strict anti-hallucination check
           if (allRecords.length === 0) {
             renderAssistantResponse(assistantMsgEl, {
               markdown: NOT_FOUND_MSG,
@@ -1649,7 +1651,6 @@ ${contextText}`;
             return;
           }
 
-          // 3. Generate grounded answer using ONLY fetched records
           updatePlaceholderStatus(
             assistantMsgEl,
             `수집된 ${allRecords.length}건의 공식 데이터를 바탕으로 답변 생성 중...`
@@ -1679,7 +1680,7 @@ ${contextText}`;
             openModal();
           } else {
             renderAssistantResponse(assistantMsgEl, {
-              markdown: `요청 처리 중 오류가 발생했습니다: ${err.message}\n(API 키가 올바른지 또는 무료 할당량 초과 여부를 확인해 주세요.)`,
+              markdown: `요청 처리 중 오류가 발생했습니다: ${err.message}\n(우측 상단 [API 설정]에서 다른 무료 모델로 변경하거나 API 키를 확인해 주세요.)`,
               isError: true
             });
           }
@@ -1747,6 +1748,8 @@ ${contextText}`;
         updateSettingsButtonState();
       });
 
+      // Migrate legacy model setting immediately on load
+      getModel();
       updateSettingsButtonState();
     })();
   </script>
