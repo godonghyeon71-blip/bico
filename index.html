@@ -1,0 +1,1754 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BiCo — 바이오 전문 AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #fafafa;
+      --surface: #ffffff;
+      --text-primary: #111827;
+      --text-secondary: #4b5563;
+      --text-muted: #9ca3af;
+      --border: #e5e7eb;
+      --border-strong: #d1d5db;
+      --accent: #0f766e;
+      --accent-soft: #f0fdfa;
+      --accent-border: #ccfbf1;
+      --danger: #b91c1c;
+      --danger-soft: #fef2f2;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --font-sans: 'Inter', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      height: 100%;
+      background-color: var(--bg);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.65;
+    }
+
+    .app-shell {
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      max-width: 860px;
+      margin: 0 auto;
+      background: var(--bg);
+    }
+
+    /* Header */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 24px;
+      background: rgba(250, 250, 250, 0.9);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .brand {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+    }
+
+    .brand-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: inline-block;
+    }
+
+    .brand-sub {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .db-status-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .db-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.72rem;
+      font-weight: 500;
+      font-family: var(--font-mono);
+      color: var(--text-secondary);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 4px 8px;
+      border-radius: 999px;
+      transition: all 0.2s ease;
+    }
+
+    .db-pill .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #10b981;
+      transition: background 0.2s ease;
+    }
+
+    .db-pill.searching {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .db-pill.searching .dot {
+      background: var(--accent);
+      animation: pulse 1s infinite;
+    }
+
+    .db-pill.error .dot {
+      background: #ef4444;
+    }
+
+    .db-pill.empty .dot {
+      background: #d1d5db;
+    }
+
+    .icon-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 32px;
+      padding: 0 10px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-secondary);
+      font-size: 0.78rem;
+      font-weight: 500;
+      font-family: var(--font-sans);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .icon-btn:hover {
+      border-color: var(--border-strong);
+      color: var(--text-primary);
+    }
+
+    .icon-btn.key-missing {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    /* Main Chat Area */
+    .chat-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 28px 24px 36px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+      scroll-behavior: smooth;
+    }
+
+    .welcome-view {
+      margin: auto 0;
+      padding: 24px 0;
+      text-align: center;
+      max-width: 600px;
+      align-self: center;
+    }
+
+    .welcome-badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-family: var(--font-mono);
+      color: var(--accent);
+      background: var(--accent-soft);
+      border: 1px solid var(--accent-border);
+      padding: 4px 12px;
+      border-radius: 999px;
+      margin-bottom: 16px;
+    }
+
+    .welcome-title {
+      font-size: 1.65rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+    }
+
+    .welcome-desc {
+      font-size: 0.93rem;
+      color: var(--text-secondary);
+      margin-bottom: 28px;
+      word-break: keep-all;
+    }
+
+    .sample-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+      gap: 10px;
+      text-align: left;
+    }
+
+    .sample-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 13px 14px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-family: var(--font-sans);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .sample-btn:hover {
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+
+    .sample-tag {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    .sample-text {
+      font-size: 0.84rem;
+      color: var(--text-primary);
+      font-weight: 500;
+      line-height: 1.4;
+      word-break: keep-all;
+    }
+
+    /* Message Blocks */
+    .message {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .message.user {
+      align-items: flex-end;
+    }
+
+    .message.assistant {
+      align-items: flex-start;
+    }
+
+    .msg-meta {
+      font-size: 0.73rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 2px;
+    }
+
+    .msg-bubble {
+      max-width: 100%;
+      font-size: 0.95rem;
+      word-break: break-word;
+    }
+
+    .message.user .msg-bubble {
+      background: var(--text-primary);
+      color: #ffffff;
+      padding: 12px 18px;
+      border-radius: var(--radius-lg);
+      border-bottom-right-radius: 4px;
+      max-width: 82%;
+      line-height: 1.6;
+    }
+
+    .message.assistant .msg-bubble {
+      background: var(--surface);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+      padding: 20px 24px;
+      border-radius: var(--radius-lg);
+      width: 100%;
+    }
+
+    /* Markdown Typography inside Assistant Bubble */
+    .md-content > *:first-child { margin-top: 0; }
+    .md-content > *:last-child { margin-bottom: 0; }
+
+    .md-content h2 {
+      font-size: 1.08rem;
+      font-weight: 700;
+      margin: 18px 0 8px;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+    }
+
+    .md-content h3 {
+      font-size: 0.98rem;
+      font-weight: 600;
+      margin: 14px 0 6px;
+      color: var(--text-primary);
+    }
+
+    .md-content p {
+      margin: 0 0 12px;
+      color: #1f2937;
+    }
+
+    .md-content ul, .md-content ol {
+      margin: 0 0 12px 20px;
+      color: #1f2937;
+    }
+
+    .md-content li {
+      margin-bottom: 5px;
+    }
+
+    .md-content strong {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .md-content code {
+      font-family: var(--font-mono);
+      font-size: 0.84em;
+      background: #f3f4f6;
+      color: var(--accent);
+      padding: 2px 6px;
+      border-radius: 5px;
+      border: 1px solid #e5e7eb;
+    }
+
+    .md-content a {
+      color: var(--accent);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .md-table-wrap {
+      overflow-x: auto;
+      margin: 14px 0;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+
+    .md-content table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.87rem;
+      text-align: left;
+    }
+
+    .md-content th {
+      background: #f9fafb;
+      font-weight: 600;
+      color: var(--text-primary);
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    .md-content td {
+      padding: 9px 12px;
+      border-bottom: 1px solid #f3f4f6;
+      color: var(--text-secondary);
+      vertical-align: top;
+    }
+
+    .md-content tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* Search Query Tag & Sources Section */
+    .query-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.73rem;
+      font-family: var(--font-mono);
+      color: var(--text-secondary);
+      background: #f3f4f6;
+      padding: 3px 8px;
+      border-radius: 6px;
+      margin-bottom: 14px;
+    }
+
+    .sources-block {
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+    }
+
+    .sources-title {
+      font-size: 0.74rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      margin-bottom: 9px;
+    }
+
+    .sources-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .source-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: #fafafa;
+      color: var(--text-primary);
+      text-decoration: none;
+      font-size: 0.78rem;
+      transition: all 0.15s ease;
+      max-width: 100%;
+    }
+
+    .source-chip:hover {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    .source-db {
+      font-family: var(--font-mono);
+      font-size: 0.69rem;
+      font-weight: 600;
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: #e5e7eb;
+      color: var(--text-primary);
+      flex-shrink: 0;
+    }
+
+    .source-chip[data-db="UniProt"] .source-db {
+      background: #e0f2fe;
+      color: #0369a1;
+    }
+
+    .source-chip[data-db="EMBL-EBI"] .source-db {
+      background: #ccfbf1;
+      color: #0f766e;
+    }
+
+    .source-chip[data-db="NCBI"] .source-db {
+      background: #ede9fe;
+      color: #5b21b6;
+    }
+
+    .source-label {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 240px;
+    }
+
+    /* Loading Status */
+    .status-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.88rem;
+      color: var(--text-secondary);
+    }
+
+    .spinner {
+      width: 15px;
+      height: 15px;
+      border: 2px solid var(--border-strong);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+      flex-shrink: 0;
+    }
+
+    .error-notice {
+      background: var(--danger-soft);
+      color: var(--danger);
+      border: 1px solid #fecaca;
+      padding: 12px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 0.86rem;
+    }
+
+    /* Bottom Composer */
+    .composer-wrap {
+      padding: 14px 24px 20px;
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+    }
+
+    .composer-box {
+      display: flex;
+      align-items: flex-end;
+      gap: 10px;
+      background: var(--surface);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-lg);
+      padding: 10px 12px 10px 16px;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .composer-box:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.08);
+    }
+
+    .composer-input {
+      flex: 1;
+      border: none;
+      outline: none;
+      resize: none;
+      background: transparent;
+      font-family: var(--font-sans);
+      font-size: 0.94rem;
+      color: var(--text-primary);
+      line-height: 1.5;
+      max-height: 140px;
+      padding: 4px 0;
+    }
+
+    .composer-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .send-btn {
+      height: 36px;
+      padding: 0 16px;
+      border-radius: 10px;
+      border: none;
+      background: var(--text-primary);
+      color: #ffffff;
+      font-family: var(--font-sans);
+      font-size: 0.84rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease, opacity 0.15s ease;
+      flex-shrink: 0;
+    }
+
+    .send-btn:hover:not(:disabled) {
+      background: var(--accent);
+    }
+
+    .send-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .composer-footnote {
+      margin-top: 8px;
+      text-align: center;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    /* Settings Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(17, 24, 39, 0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 50;
+      backdrop-filter: blur(2px);
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal {
+      width: 100%;
+      max-width: 440px;
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      padding: 24px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+    }
+
+    .modal-title {
+      font-size: 1.08rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .modal-desc {
+      font-size: 0.84rem;
+      color: var(--text-secondary);
+      margin-bottom: 18px;
+      line-height: 1.55;
+      word-break: keep-all;
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 6px;
+    }
+
+    .form-input, .form-select {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-strong);
+      font-family: var(--font-mono);
+      font-size: 0.84rem;
+      color: var(--text-primary);
+      background: var(--bg);
+      outline: none;
+    }
+
+    .form-select {
+      font-family: var(--font-sans);
+    }
+
+    .form-input:focus, .form-select:focus {
+      border-color: var(--accent);
+      background: var(--surface);
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-top: 20px;
+    }
+
+    .modal-actions-right {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: var(--text-primary);
+      color: #ffffff;
+      border: none;
+      padding: 9px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 0.84rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent);
+    }
+
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-strong);
+      padding: 9px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 0.84rem;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .btn-danger-text {
+      background: none;
+      border: none;
+      color: var(--danger);
+      font-size: 0.8rem;
+      cursor: pointer;
+      padding: 4px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.35; }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 640px) {
+      .header {
+        padding: 12px 16px;
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .header-right {
+        width: 100%;
+        justify-content: space-between;
+      }
+      .chat-container {
+        padding: 20px 16px 28px;
+      }
+      .message.assistant .msg-bubble {
+        padding: 16px;
+      }
+      .message.user .msg-bubble {
+        max-width: 92%;
+      }
+      .composer-wrap {
+        padding: 10px 16px 14px;
+      }
+      .source-label {
+        max-width: 180px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Top Bar -->
+    <header class="header">
+      <div class="brand">
+        <div class="brand-title"><span class="brand-dot"></span>BiCo</div>
+        <span class="brand-sub">Bioinformatics AI</span>
+      </div>
+
+      <div class="header-right">
+        <div class="db-status-group" aria-label="연결된 바이오 데이터베이스">
+          <span class="db-pill" id="status-ebi"><span class="dot"></span>EBI</span>
+          <span class="db-pill" id="status-uniprot"><span class="dot"></span>UniProt</span>
+          <span class="db-pill" id="status-ncbi"><span class="dot"></span>NCBI</span>
+        </div>
+        <div style="display:flex; gap:6px;">
+          <button type="button" class="icon-btn" id="btn-clear" title="대화 초기화">초기화</button>
+          <button type="button" class="icon-btn" id="btn-settings">API 설정</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Conversation Stream -->
+    <main class="chat-container" id="chat-container">
+      <section class="welcome-view" id="welcome-view">
+        <span class="welcome-badge">EBI · UniProt · NCBI 실시간 연동</span>
+        <h1 class="welcome-title">무엇을 탐색할까요?</h1>
+        <p class="welcome-desc">
+          바이코(BiCo)는 생명과학·유전체·단백질·생물정보학 전문 AI입니다.<br />
+          허용된 3개 공식 바이오 데이터베이스의 실시간 데이터만을 근거로 답변합니다.
+        </p>
+
+        <div class="sample-grid">
+          <button type="button" class="sample-btn" data-prompt="TP53 유전자와 p53 단백질의 주요 기능 및 관련 질환을 정리해줘.">
+            <span class="sample-tag">GENE / PROTEIN</span>
+            <span class="sample-text">TP53 유전자와 p53 단백질 기능 및 관련 질환</span>
+          </button>
+          <button type="button" class="sample-btn" data-prompt="BRCA1 유전자의 역할과 염색체 위치, 관련 암 질환에 대해 알려줘.">
+            <span class="sample-tag">GENOMICS</span>
+            <span class="sample-text">BRCA1 유전자 역할과 염색체 위치</span>
+          </button>
+          <button type="button" class="sample-btn" data-prompt="인슐린 수용체(INSR) 단백질의 생물학적 기능과 세포 내 위치를 설명해줘.">
+            <span class="sample-tag">PROTEOMICS</span>
+            <span class="sample-text">인슐린 수용체(INSR) 기능과 세포 내 위치</span>
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <!-- Bottom Input -->
+    <footer class="composer-wrap">
+      <form class="composer-box" id="chat-form">
+        <textarea
+          id="user-input"
+          class="composer-input"
+          rows="1"
+          placeholder="유전자, 단백질, 생물정보학 관련 질문을 입력하세요 (예: EGFR 단백질의 기능은?)"
+        ></textarea>
+        <button type="submit" class="send-btn" id="send-btn">전송</button>
+      </form>
+      <div class="composer-footnote">
+        허용 출처: ebi.ac.uk · uniprot.org · ncbi.nlm.nih.gov 전용 · 개인 학습 및 교육용
+      </div>
+    </footer>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal-backdrop" id="settings-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal">
+      <h2 class="modal-title" id="modal-title">Gemini API 설정</h2>
+      <p class="modal-desc">
+        Google AI Studio에서 발급받은 무료 Gemini API 키를 입력하세요.
+        입력한 키는 외부 서버가 아닌 <strong>현재 브라우저(localStorage)</strong>에만 안전하게 저장됩니다.
+      </p>
+
+      <div class="form-group">
+        <label class="form-label" for="api-key-input">Gemini API Key</label>
+        <input
+          type="password"
+          id="api-key-input"
+          class="form-input"
+          placeholder="AIzaSy..."
+          autocomplete="off"
+        />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="model-select">사용 모델</label>
+        <select id="model-select" class="form-select">
+          <option value="gemini-2.5-flash">gemini-2.5-flash (권장 · 빠르고 정확함)</option>
+          <option value="gemini-2.5-pro">gemini-2.5-pro (심층 생물정보학 분석)</option>
+          <option value="gemini-2.0-flash">gemini-2.0-flash (대체 모델)</option>
+        </select>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-danger-text" id="btn-delete-key">저장된 키 삭제</button>
+        <div class="modal-actions-right">
+          <button type="button" class="btn-secondary" id="btn-close-modal">닫기</button>
+          <button type="button" class="btn-primary" id="btn-save-settings">저장</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      const STORAGE_KEY_API = 'bico_gemini_api_key';
+      const STORAGE_KEY_MODEL = 'bico_gemini_model';
+      const NOT_FOUND_MSG = '지정된 3개 데이터베이스에서 해당 정보를 찾을 수 없습니다.';
+      const NON_BIO_MSG = '안녕하세요, 바이오 전문 AI **바이코(BiCo)**입니다.\n\n저는 생명과학, 유전체, 단백질, 분자생물학 및 생물정보학 분야의 질문에만 전문적으로 답변하도록 설계되어 있습니다. 관심 있는 유전자, 단백질, 생물학적 기전이나 질환 관련 질문을 입력해 주시면 EMBL-EBI, UniProt, NCBI 공식 데이터베이스를 실시간으로 조회해 답변해 드리겠습니다.';
+
+      // DOM References
+      const chatContainer = document.getElementById('chat-container');
+      const welcomeView = document.getElementById('welcome-view');
+      const chatForm = document.getElementById('chat-form');
+      const userInput = document.getElementById('user-input');
+      const sendBtn = document.getElementById('send-btn');
+      const btnClear = document.getElementById('btn-clear');
+      const btnSettings = document.getElementById('btn-settings');
+      const settingsModal = document.getElementById('settings-modal');
+      const apiKeyInput = document.getElementById('api-key-input');
+      const modelSelect = document.getElementById('model-select');
+      const btnSaveSettings = document.getElementById('btn-save-settings');
+      const btnCloseModal = document.getElementById('btn-close-modal');
+      const btnDeleteKey = document.getElementById('btn-delete-key');
+
+      const dbPills = {
+        ebi: document.getElementById('status-ebi'),
+        uniprot: document.getElementById('status-uniprot'),
+        ncbi: document.getElementById('status-ncbi')
+      };
+
+      let isProcessing = false;
+      let conversationHistory = [];
+
+      // Initialize UI State
+      function getApiKey() {
+        return (localStorage.getItem(STORAGE_KEY_API) || '').trim();
+      }
+
+      function getModel() {
+        return localStorage.getItem(STORAGE_KEY_MODEL) || 'gemini-2.5-flash';
+      }
+
+      function updateSettingsButtonState() {
+        if (!getApiKey()) {
+          btnSettings.classList.add('key-missing');
+          btnSettings.textContent = 'API 키 입력 필요';
+        } else {
+          btnSettings.classList.remove('key-missing');
+          btnSettings.textContent = 'API 설정';
+        }
+      }
+
+      function openModal() {
+        apiKeyInput.value = getApiKey();
+        modelSelect.value = getModel();
+        settingsModal.classList.add('open');
+        apiKeyInput.focus();
+      }
+
+      function closeModal() {
+        settingsModal.classList.remove('open');
+      }
+
+      function setDbStatus(db, state) {
+        const el = dbPills[db];
+        if (!el) return;
+        el.classList.remove('searching', 'error', 'empty');
+        if (state && state !== 'ready') {
+          el.classList.add(state);
+        }
+      }
+
+      function resetAllDbStatus() {
+        setDbStatus('ebi', 'ready');
+        setDbStatus('uniprot', 'ready');
+        setDbStatus('ncbi', 'ready');
+      }
+
+      // Utility: HTML Escape
+      function escapeHtml(str) {
+        return String(str || '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      // Utility: Fetch with Timeout
+      async function fetchWithTimeout(url, options = {}, timeoutMs = 10000) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+          const response = await fetch(url, { ...options, signal: controller.signal });
+          return response;
+        } finally {
+          clearTimeout(timer);
+        }
+      }
+
+      // Lightweight Safe Markdown Renderer (Supports Headings, Lists, Tables, Bold, Code, Safe Links)
+      function renderMarkdown(mdText) {
+        const lines = String(mdText || '').replace(/\r\n/g, '\n').split('\n');
+        let html = '';
+        let i = 0;
+
+        function formatInline(text) {
+          let safe = escapeHtml(text);
+          // Inline code
+          safe = safe.replace(/`([^`]+)`/g, '<code>$1</code>');
+          // Bold
+          safe = safe.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+          // Italic
+          safe = safe.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+          // Markdown links (strictly https only)
+          safe = safe.replace(/\[([^\]]+)\]\((https:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+          return safe;
+        }
+
+        while (i < lines.length) {
+          const line = lines[i].trim();
+
+          if (!line) {
+            i++;
+            continue;
+          }
+
+          // Table detection
+          if (
+            line.startsWith('|') &&
+            i + 1 < lines.length &&
+            /^\|?[\s:-]+\|[\s|:-]*$/.test(lines[i + 1].trim())
+          ) {
+            const parseRow = (rowStr) =>
+              rowStr
+                .trim()
+                .replace(/^\|/, '')
+                .replace(/\|$/, '')
+                .split('|')
+                .map((cell) => cell.trim());
+
+            const headers = parseRow(line);
+            i += 2; // Skip header and separator
+            const bodyRows = [];
+            while (i < lines.length && lines[i].trim().startsWith('|')) {
+              bodyRows.push(parseRow(lines[i]));
+              i++;
+            }
+
+            html += '<div class="md-table-wrap"><table><thead><tr>';
+            headers.forEach((h) => {
+              html += `<th>${formatInline(h)}</th>`;
+            });
+            html += '</tr></thead><tbody>';
+            bodyRows.forEach((row) => {
+              html += '<tr>';
+              headers.forEach((_, idx) => {
+                html += `<td>${formatInline(row[idx] || '')}</td>`;
+              });
+              html += '</tr>';
+            });
+            html += '</tbody></table></div>';
+            continue;
+          }
+
+          // Headings
+          if (line.startsWith('### ')) {
+            html += `<h3>${formatInline(line.slice(4))}</h3>`;
+            i++;
+            continue;
+          }
+          if (line.startsWith('## ')) {
+            html += `<h2>${formatInline(line.slice(3))}</h2>`;
+            i++;
+            continue;
+          }
+          if (line.startsWith('# ')) {
+            html += `<h2>${formatInline(line.slice(2))}</h2>`;
+            i++;
+            continue;
+          }
+
+          // Unordered List
+          if (/^[-*]\s+/.test(line)) {
+            html += '<ul>';
+            while (i < lines.length && /^[-*]\s+/.test(lines[i].trim())) {
+              html += `<li>${formatInline(lines[i].trim().replace(/^[-*]\s+/, ''))}</li>`;
+              i++;
+            }
+            html += '</ul>';
+            continue;
+          }
+
+          // Ordered List
+          if (/^\d+\.\s+/.test(line)) {
+            html += '<ol>';
+            while (i < lines.length && /^\d+\.\s+/.test(lines[i].trim())) {
+              html += `<li>${formatInline(lines[i].trim().replace(/^\d+\.\s+/, ''))}</li>`;
+              i++;
+            }
+            html += '</ol>';
+            continue;
+          }
+
+          // Paragraph
+          const paraLines = [];
+          while (
+            i < lines.length &&
+            lines[i].trim() &&
+            !lines[i].trim().startsWith('#') &&
+            !lines[i].trim().startsWith('|') &&
+            !/^[-*]\s+/.test(lines[i].trim()) &&
+            !/^\d+\.\s+/.test(lines[i].trim())
+          ) {
+            paraLines.push(formatInline(lines[i].trim()));
+            i++;
+          }
+          html += `<p>${paraLines.join('<br />')}</p>`;
+        }
+
+        return html;
+      }
+
+      // Gemini API Caller
+      async function callGemini({ systemInstruction, userPrompt, jsonMode = false, temperature = 0.2 }) {
+        const apiKey = getApiKey();
+        const model = getModel();
+        if (!apiKey) {
+          throw new Error('NO_API_KEY');
+        }
+
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+        const payload = {
+          system_instruction: {
+            parts: [{ text: systemInstruction }]
+          },
+          contents: [
+            {
+              role: 'user',
+              parts: [{ text: userPrompt }]
+            }
+          ],
+          generationConfig: {
+            temperature
+          }
+        };
+
+        if (jsonMode) {
+          payload.generationConfig.responseMimeType = 'application/json';
+        }
+
+        const res = await fetchWithTimeout(
+          url,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-goog-api-key': apiKey
+            },
+            body: JSON.stringify(payload)
+          },
+          25000
+        );
+
+        const data = await res.json();
+        if (!res.ok) {
+          const msg = data?.error?.message || `HTTP ${res.status}`;
+          throw new Error(`Gemini API 오류: ${msg}`);
+        }
+
+        const text = data?.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('') || '';
+        return text.trim();
+      }
+
+      // Step 1: Classify Bio Intent & Extract English Scientific Search Keywords
+      async function analyzeQuery(question) {
+        const recentContext = conversationHistory
+          .slice(-4)
+          .map((m) => `${m.role === 'user' ? '사용자' : 'BiCo'}: ${m.text.slice(0, 200)}`)
+          .join('\n');
+
+        const systemInstruction = `You are a bioinformatics query router for BiCo.
+Your job is ONLY to analyze the user's question and output valid JSON with the following schema:
+{
+  "is_bio": boolean,
+  "primary_query": "short concise English scientific keyword (1-4 words, e.g., TP53, BRCA1, insulin receptor, CRISPR Cas9)",
+  "fallback_query": "broader English biological term if primary_query is specific (1-3 words)"
+}
+Rules:
+1. Set "is_bio" to true ONLY if the question relates to biology, life sciences, genetics, genomics, proteins, molecular biology, cell biology, biochemistry, microbiology, immunology, biomedical research, or bioinformatics.
+2. Set "is_bio" to false for general chat, coding unrelated to bioinformatics, cooking, weather, finance, politics, math homework, history, or casual requests.
+3. Always translate Korean or non-English biological terms into standard English scientific symbols or terms for "primary_query" so EMBL-EBI, UniProt, and NCBI APIs can find exact matches.
+4. Keep "primary_query" concise without stop words like "function of" or "what is".`;
+
+        const userPrompt = recentContext
+          ? `이전 대화 맥락:\n${recentContext}\n\n현재 질문: ${question}`
+          : `현재 질문: ${question}`;
+
+        const raw = await callGemini({
+          systemInstruction,
+          userPrompt,
+          jsonMode: true,
+          temperature: 0.1
+        });
+
+        const cleaned = raw.replace(/^```json\s*/i, '').replace(/```$/i, '').trim();
+        try {
+          return JSON.parse(cleaned);
+        } catch {
+          return { is_bio: true, primary_query: question, fallback_query: question };
+        }
+      }
+
+      // Step 2A: UniProt Official REST API (https://www.uniprot.org/)
+      async function fetchUniProt(primaryQuery, fallbackQuery) {
+        setDbStatus('uniprot', 'searching');
+        const fields = 'accession,id,protein_name,gene_names,organism_name,cc_function,cc_disease,cc_subcellular_location,length';
+
+        async function runSearch(q) {
+          const url = `https://rest.uniprot.org/uniprotkb/search?query=${encodeURIComponent(q)}&format=json&size=4&fields=${fields}`;
+          const res = await fetchWithTimeout(url, {}, 9000);
+          if (!res.ok) return [];
+          const data = await res.json();
+          return Array.isArray(data.results) ? data.results : [];
+        }
+
+        try {
+          // Prioritize Swiss-Prot reviewed entries first
+          let rows = await runSearch(`(${primaryQuery}) AND reviewed:true`);
+          if (rows.length === 0) {
+            rows = await runSearch(primaryQuery);
+          }
+          if (rows.length === 0 && fallbackQuery && fallbackQuery !== primaryQuery) {
+            rows = await runSearch(`(${fallbackQuery}) AND reviewed:true`);
+          }
+
+          const records = rows.slice(0, 3).map((r) => {
+            const acc = r.primaryAccession || '';
+            const proteinName =
+              r.proteinDescription?.recommendedName?.fullName?.value ||
+              r.proteinDescription?.submittedName?.[0]?.fullName?.value ||
+              r.uniProtkbId ||
+              acc;
+            const genes = (r.genes || [])
+              .map((g) => g.geneName?.value)
+              .filter(Boolean)
+              .join(', ');
+            const organism = r.organism?.scientificName || '';
+            const length = r.sequence?.length ? `${r.sequence.length} aa` : '';
+
+            const comments = r.comments || [];
+            const funcText = comments
+              .filter((c) => c.commentType === 'FUNCTION')
+              .flatMap((c) => (c.texts || []).map((t) => t.value))
+              .join(' ')
+              .slice(0, 650);
+
+            const diseaseText = comments
+              .filter((c) => c.commentType === 'DISEASE')
+              .map((c) => {
+                const dName = c.disease?.diseaseId || '';
+                const dDesc = c.disease?.description || c.note?.texts?.[0]?.value || '';
+                return dName ? `${dName}: ${dDesc}` : dDesc;
+              })
+              .filter(Boolean)
+              .join(' | ')
+              .slice(0, 450);
+
+            const subcellText = comments
+              .filter((c) => c.commentType === 'SUBCELLULAR LOCATION')
+              .flatMap((c) => (c.subcellularLocations || []).map((sl) => sl.location?.value))
+              .filter(Boolean)
+              .slice(0, 6)
+              .join(', ');
+
+            const summaryParts = [
+              `Protein: ${proteinName}`,
+              genes ? `Gene: ${genes}` : '',
+              organism ? `Organism: ${organism}` : '',
+              length ? `Length: ${length}` : '',
+              funcText ? `Function: ${funcText}` : '',
+              subcellText ? `Subcellular Location: ${subcellText}` : '',
+              diseaseText ? `Associated Diseases: ${diseaseText}` : ''
+            ].filter(Boolean);
+
+            return {
+              db: 'UniProt',
+              id: acc,
+              title: `${genes ? genes + ' — ' : ''}${proteinName}`,
+              url: `https://www.uniprot.org/uniprotkb/${encodeURIComponent(acc)}/entry`,
+              content: summaryParts.join('\n')
+            };
+          });
+
+          setDbStatus('uniprot', records.length ? 'ready' : 'empty');
+          return records;
+        } catch (err) {
+          console.error('UniProt fetch error:', err);
+          setDbStatus('uniprot', 'error');
+          return [];
+        }
+      }
+
+      // Step 2B: EMBL-EBI Official Open APIs (https://www.ebi.ac.uk/)
+      async function fetchEBI(primaryQuery, fallbackQuery) {
+        setDbStatus('ebi', 'searching');
+        const records = [];
+        const seenUrls = new Set();
+
+        const queryToUse = primaryQuery;
+
+        async function fetchInterPro(q) {
+          const url = `https://www.ebi.ac.uk/ebisearch/ws/rest/interpro?query=${encodeURIComponent(q)}&format=json&size=2&fields=name,description&fieldurl=true`;
+          const res = await fetchWithTimeout(url, {}, 9000);
+          if (!res.ok) return [];
+          const data = await res.json();
+          return (data.entries || []).map((e) => {
+            const name = e.fields?.name?.[0] || e.id;
+            const desc = (e.fields?.description || []).join(' ').slice(0, 500);
+            let link = e.fieldURLs?.[0]?.value || `https://www.ebi.ac.uk/interpro/entry/InterPro/${encodeURIComponent(e.id)}/`;
+            link = link.replace(/^http:\/\//i, 'https://');
+            if (!link.startsWith('https://www.ebi.ac.uk/')) {
+              link = `https://www.ebi.ac.uk/interpro/search/text/${encodeURIComponent(e.id)}/`;
+            }
+            return {
+              db: 'EMBL-EBI',
+              id: e.id,
+              title: `InterPro: ${name}`,
+              url: link,
+              content: `EBI InterPro Entry (${e.id}): ${name}\nDescription: ${desc || 'Protein family/domain entry in EMBL-EBI InterPro.'}`
+            };
+          });
+        }
+
+        async function fetchOLS4(q) {
+          const url = `https://www.ebi.ac.uk/ols4/api/search?q=${encodeURIComponent(q)}&rows=3`;
+          const res = await fetchWithTimeout(url, {}, 9000);
+          if (!res.ok) return [];
+          const data = await res.json();
+          const docs = data?.response?.docs || [];
+          return docs
+            .filter((d) => d.label)
+            .slice(0, 2)
+            .map((d) => {
+              const termId = d.obo_id || d.short_form || d.label;
+              const desc = (d.description || []).join(' ').slice(0, 550);
+              const ont = (d.ontology_prefix || d.ontology_name || 'OLS').toUpperCase();
+              return {
+                db: 'EMBL-EBI',
+                id: termId,
+                title: `${ont}: ${d.label}`,
+                url: `https://www.ebi.ac.uk/ols4/search?q=${encodeURIComponent(termId)}`,
+                content: `EBI Ontology (${ont} - ${termId}): ${d.label}\nDefinition: ${desc || 'Ontology term indexed at EMBL-EBI OLS4.'}`
+              };
+            });
+        }
+
+        async function fetchAllEBI(q) {
+          const url = `https://www.ebi.ac.uk/ebisearch/ws/rest/allebi?query=${encodeURIComponent(q)}&format=json&size=3&fieldurl=true`;
+          const res = await fetchWithTimeout(url, {}, 9000);
+          if (!res.ok) return [];
+          const data = await res.json();
+          return (data.entries || []).slice(0, 2).map((e) => {
+            let link = e.fieldURLs?.[0]?.value || '';
+            link = link.replace(/^http:\/\//i, 'https://');
+            if (!link.startsWith('https://www.ebi.ac.uk/')) {
+              link = `https://www.ebi.ac.uk/ebisearch/search?db=allebi&query=${encodeURIComponent(e.id || q)}`;
+            }
+            return {
+              db: 'EMBL-EBI',
+              id: e.id,
+              title: `EBI (${e.source}): ${e.id}`,
+              url: link,
+              content: `EMBL-EBI Search Record\nDatabase Source: ${e.source}\nEntry ID: ${e.id}`
+            };
+          });
+        }
+
+        try {
+          const [interproRes, olsRes] = await Promise.allSettled([
+            fetchInterPro(queryToUse),
+            fetchOLS4(queryToUse)
+          ]);
+
+          const merged = [
+            ...(interproRes.status === 'fulfilled' ? interproRes.value : []),
+            ...(olsRes.status === 'fulfilled' ? olsRes.value : [])
+          ];
+
+          if (merged.length < 2) {
+            const allEbi = await fetchAllEBI(fallbackQuery || queryToUse).catch(() => []);
+            merged.push(...allEbi);
+          }
+
+          for (const item of merged) {
+            if (!seenUrls.has(item.url)) {
+              seenUrls.add(item.url);
+              records.push(item);
+            }
+          }
+
+          setDbStatus('ebi', records.length ? 'ready' : 'empty');
+          return records.slice(0, 3);
+        } catch (err) {
+          console.error('EBI fetch error:', err);
+          setDbStatus('ebi', 'error');
+          return [];
+        }
+      }
+
+      // Step 2C: NCBI Official E-utilities API (https://www.ncbi.nlm.nih.gov/)
+      async function fetchNCBI(primaryQuery, fallbackQuery) {
+        setDbStatus('ncbi', 'searching');
+        const records = [];
+
+        async function searchGene(q) {
+          const searchUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=gene&term=${encodeURIComponent(q)}&retmode=json&retmax=3&sort=relevance`;
+          const sRes = await fetchWithTimeout(searchUrl, {}, 9000);
+          if (!sRes.ok) return [];
+          const sData = await sRes.json();
+          const ids = sData?.esearchresult?.idlist || [];
+          if (!ids.length) return [];
+
+          const sumUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=gene&id=${ids.join(',')}&retmode=json`;
+          const sumRes = await fetchWithTimeout(sumUrl, {}, 9000);
+          if (!sumRes.ok) return [];
+          const sumData = await sumRes.json();
+          const resultMap = sumData?.result || {};
+
+          return ids
+            .map((id) => {
+              const g = resultMap[id];
+              if (!g) return null;
+              const org = g.organism?.scientificname || '';
+              const loc = [g.chromosome ? `Chr ${g.chromosome}` : '', g.maplocation || ''].filter(Boolean).join(' / ');
+              const summary = (g.summary || '').slice(0, 750);
+              const details = [
+                `Gene Symbol: ${g.name || id}`,
+                g.description ? `Description: ${g.description}` : '',
+                org ? `Organism: ${org}` : '',
+                loc ? `Location: ${loc}` : '',
+                g.otheraliases ? `Aliases: ${g.otheraliases}` : '',
+                summary ? `RefSeq Summary: ${summary}` : ''
+              ].filter(Boolean);
+
+              return {
+                db: 'NCBI',
+                id: `Gene ${id}`,
+                title: `NCBI Gene: ${g.name || id}${org ? ` (${org})` : ''}`,
+                url: `https://www.ncbi.nlm.nih.gov/gene/${encodeURIComponent(id)}`,
+                content: details.join('\n')
+              };
+            })
+            .filter(Boolean);
+        }
+
+        async function searchPMC(q) {
+          const searchUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pmc&term=${encodeURIComponent(q)}&retmode=json&retmax=2&sort=relevance`;
+          const sRes = await fetchWithTimeout(searchUrl, {}, 9000);
+          if (!sRes.ok) return [];
+          const sData = await sRes.json();
+          const ids = sData?.esearchresult?.idlist || [];
+          if (!ids.length) return [];
+
+          const sumUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pmc&id=${ids.join(',')}&retmode=json`;
+          const sumRes = await fetchWithTimeout(sumUrl, {}, 9000);
+          if (!sumRes.ok) return [];
+          const sumData = await sumRes.json();
+          const resultMap = sumData?.result || {};
+
+          return ids
+            .map((id) => {
+              const art = resultMap[id];
+              if (!art) return null;
+              const authors = (art.authors || []).slice(0, 3).map((a) => a.name).join(', ');
+              return {
+                db: 'NCBI',
+                id: `PMC${id}`,
+                title: `PMC: ${art.title || 'PMC' + id}`,
+                url: `https://www.ncbi.nlm.nih.gov/pmc/articles/PMC${encodeURIComponent(id)}/`,
+                content: `NCBI PMC Article (PMC${id})\nTitle: ${art.title || ''}\nJournal: ${art.fulljournalname || art.source || ''} (${art.pubdate || ''})\nAuthors: ${authors}`
+              };
+            })
+            .filter(Boolean);
+        }
+
+        try {
+          // Prefer human gene records first if relevant, then general gene search
+          let geneRecords = await searchGene(primaryQuery);
+          if (geneRecords.length === 0 && fallbackQuery && fallbackQuery !== primaryQuery) {
+            geneRecords = await searchGene(fallbackQuery);
+          }
+          records.push(...geneRecords.slice(0, 2));
+
+          // Add PMC literature if gene records are fewer than 2 (staggered slightly for NCBI rate limit)
+          if (records.length < 2) {
+            await new Promise((r) => setTimeout(r, 350));
+            const pmcRecords = await searchPMC(primaryQuery);
+            records.push(...pmcRecords.slice(0, 2));
+          }
+
+          setDbStatus('ncbi', records.length ? 'ready' : 'empty');
+          return records.slice(0, 3);
+        } catch (err) {
+          console.error('NCBI fetch error:', err);
+          setDbStatus('ncbi', 'error');
+          return [];
+        }
+      }
+
+      // Step 3: Generate Strictly Grounded Bio Answer
+      async function generateGroundedAnswer(question, allRecords) {
+        const contextText = allRecords
+          .map(
+            (rec, idx) =>
+              `[자료 ${idx + 1}] 출처: ${rec.db} | ID: ${rec.id} | 링크: ${rec.url}\n${rec.content}`
+          )
+          .join('\n\n---\n\n');
+
+        const systemInstruction = `당신은 개인 학습 및 교육용 바이오(생명과학·생물정보학) 전문 AI '바이코(BiCo)'입니다.
+
+[필수 준수 규칙]
+1. 반드시 아래 [실시간 조회된 3개 공식 데이터베이스 결과]에 포함된 사실만 근거로 답변하세요.
+2. EMBL-EBI, UniProt, NCBI 외의 외부 지식, 추측, 일반 웹 정보는 절대 섞지 마세요.
+3. 만약 조회된 자료가 사용자의 질문에 답하기에 내용이 전혀 맞지 않거나 관련 정보가 없다면, 다른 말을 덧붙이지 말고 정확히 다음 문장만 출력하세요:
+   ${NOT_FOUND_MSG}
+4. 가독성 높게 한국어로 설명하되, 유전자명·단백질명·접근번호(예: \`TP53\`, \`P04637\`, \`Gene 7157\`)는 영문 원문과 인라인 코드 형식을 병기하세요.
+5. 핵심 정보 비교나 구조화가 유리할 경우 마크다운 표(Table)와 글머리 기호를 깔끔하게 활용하세요.
+6. 문장 내 근거를 밝힐 때 (UniProt: P04637), (NCBI: Gene 7157), (EMBL-EBI) 형태로 표기하세요. 답변 하단의 출처 링크 버튼은 시스템이 자동으로 렌더링하므로 임의로 URL을 만들어 적지 마세요.`;
+
+        const userPrompt = `[사용자 질문]
+${question}
+
+[실시간 조회된 3개 공식 데이터베이스 결과]
+${contextText}`;
+
+        return await callGemini({
+          systemInstruction,
+          userPrompt,
+          jsonMode: false,
+          temperature: 0.15
+        });
+      }
+
+      // UI Rendering Helpers
+      function scrollToBottom() {
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+      }
+
+      function appendUserMessage(text) {
+        if (welcomeView) welcomeView.style.display = 'none';
+        const msgEl = document.createElement('div');
+        msgEl.className = 'message user';
+        msgEl.innerHTML = `
+          <div class="msg-meta">나</div>
+          <div class="msg-bubble">${escapeHtml(text).replace(/\n/g, '<br />')}</div>
+        `;
+        chatContainer.appendChild(msgEl);
+        scrollToBottom();
+      }
+
+      function createAssistantPlaceholder() {
+        const msgEl = document.createElement('div');
+        msgEl.className = 'message assistant';
+        msgEl.innerHTML = `
+          <div class="msg-meta">BiCo</div>
+          <div class="msg-bubble">
+            <div class="status-box">
+              <div class="spinner"></div>
+              <span class="status-text">질문을 분석하고 검색 키워드를 추출하는 중...</span>
+            </div>
+          </div>
+        `;
+        chatContainer.appendChild(msgEl);
+        scrollToBottom();
+        return msgEl;
+      }
+
+      function updatePlaceholderStatus(msgEl, text) {
+        const statusEl = msgEl.querySelector('.status-text');
+        if (statusEl) statusEl.textContent = text;
+      }
+
+      function renderAssistantResponse(msgEl, { markdown, searchQuery, sources = [], isError = false }) {
+        const bubble = msgEl.querySelector('.msg-bubble');
+        if (isError) {
+          bubble.innerHTML = `<div class="error-notice">${escapeHtml(markdown)}</div>`;
+          scrollToBottom();
+          return;
+        }
+
+        const queryHtml = searchQuery
+          ? `<div class="query-badge">DB 검색어: ${escapeHtml(searchQuery)}</div>`
+          : '';
+
+        const isNotFound = markdown.includes(NOT_FOUND_MSG);
+        let sourcesHtml = '';
+
+        if (!isNotFound && sources.length > 0) {
+          const chips = sources
+            .map(
+              (s) => `
+                <a class="source-chip" data-db="${escapeHtml(s.db)}" href="${escapeHtml(s.url)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(s.title)}">
+                  <span class="source-db">${escapeHtml(s.db)}</span>
+                  <span class="source-label">${escapeHtml(s.title)}</span>
+                  <span aria-hidden="true">↗</span>
+                </a>
+              `
+            )
+            .join('');
+
+          sourcesHtml = `
+            <div class="sources-block">
+              <div class="sources-title">실시간 조회 출처 (클릭 시 공식 페이지 이동)</div>
+              <div class="sources-list">${chips}</div>
+            </div>
+          `;
+        }
+
+        bubble.innerHTML = `
+          ${queryHtml}
+          <div class="md-content">${renderMarkdown(markdown)}</div>
+          ${sourcesHtml}
+        `;
+        scrollToBottom();
+      }
+
+      // Main Submit Handler
+      async function handleQuestion(questionText) {
+        const question = questionText.trim();
+        if (!question || isProcessing) return;
+
+        if (!getApiKey()) {
+          openModal();
+          return;
+        }
+
+        isProcessing = true;
+        sendBtn.disabled = true;
+        userInput.value = '';
+        userInput.style.height = 'auto';
+
+        appendUserMessage(question);
+        const assistantMsgEl = createAssistantPlaceholder();
+
+        try {
+          // 1. Intent check & keyword extraction
+          const routing = await analyzeQuery(question);
+
+          if (!routing.is_bio) {
+            renderAssistantResponse(assistantMsgEl, {
+              markdown: NON_BIO_MSG,
+              sources: []
+            });
+            resetAllDbStatus();
+            return;
+          }
+
+          const primaryQuery = (routing.primary_query || question).trim();
+          const fallbackQuery = (routing.fallback_query || primaryQuery).trim();
+
+          // 2. Real-time parallel fetch from ONLY EBI, UniProt, NCBI
+          updatePlaceholderStatus(
+            assistantMsgEl,
+            `EBI · UniProt · NCBI 실시간 조회 중 ("${primaryQuery}")...`
+          );
+
+          const [ebiRecords, uniprotRecords, ncbiRecords] = await Promise.all([
+            fetchEBI(primaryQuery, fallbackQuery),
+            fetchUniProt(primaryQuery, fallbackQuery),
+            fetchNCBI(primaryQuery, fallbackQuery)
+          ]);
+
+          const allRecords = [...uniprotRecords, ...ncbiRecords, ...ebiRecords];
+
+          // Strict anti-hallucination check
+          if (allRecords.length === 0) {
+            renderAssistantResponse(assistantMsgEl, {
+              markdown: NOT_FOUND_MSG,
+              searchQuery: primaryQuery,
+              sources: []
+            });
+            return;
+          }
+
+          // 3. Generate grounded answer using ONLY fetched records
+          updatePlaceholderStatus(
+            assistantMsgEl,
+            `수집된 ${allRecords.length}건의 공식 데이터를 바탕으로 답변 생성 중...`
+          );
+
+          const answerText = await generateGroundedAnswer(question, allRecords);
+
+          renderAssistantResponse(assistantMsgEl, {
+            markdown: answerText,
+            searchQuery: primaryQuery,
+            sources: allRecords
+          });
+
+          conversationHistory.push({ role: 'user', text: question });
+          conversationHistory.push({ role: 'assistant', text: answerText });
+          if (conversationHistory.length > 10) {
+            conversationHistory = conversationHistory.slice(-10);
+          }
+        } catch (err) {
+          console.error(err);
+          resetAllDbStatus();
+          if (err.message === 'NO_API_KEY') {
+            renderAssistantResponse(assistantMsgEl, {
+              markdown: '우측 상단 [API 설정]에서 Gemini API 키를 먼저 입력해 주세요.',
+              isError: true
+            });
+            openModal();
+          } else {
+            renderAssistantResponse(assistantMsgEl, {
+              markdown: `요청 처리 중 오류가 발생했습니다: ${err.message}\n(API 키가 올바른지 또는 무료 할당량 초과 여부를 확인해 주세요.)`,
+              isError: true
+            });
+          }
+        } finally {
+          isProcessing = false;
+          sendBtn.disabled = false;
+          userInput.focus();
+        }
+      }
+
+      // Event Listeners
+      chatForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        handleQuestion(userInput.value);
+      });
+
+      userInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          handleQuestion(userInput.value);
+        }
+      });
+
+      userInput.addEventListener('input', () => {
+        userInput.style.height = 'auto';
+        userInput.style.height = Math.min(userInput.scrollHeight, 140) + 'px';
+      });
+
+      document.querySelectorAll('.sample-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const prompt = btn.getAttribute('data-prompt');
+          if (prompt) handleQuestion(prompt);
+        });
+      });
+
+      btnClear.addEventListener('click', () => {
+        conversationHistory = [];
+        resetAllDbStatus();
+        chatContainer.querySelectorAll('.message').forEach((el) => el.remove());
+        if (welcomeView) welcomeView.style.display = 'block';
+      });
+
+      btnSettings.addEventListener('click', openModal);
+      btnCloseModal.addEventListener('click', closeModal);
+      settingsModal.addEventListener('click', (e) => {
+        if (e.target === settingsModal) closeModal();
+      });
+
+      btnSaveSettings.addEventListener('click', () => {
+        const key = apiKeyInput.value.trim();
+        const model = modelSelect.value;
+        if (key) {
+          localStorage.setItem(STORAGE_KEY_API, key);
+        } else {
+          localStorage.removeItem(STORAGE_KEY_API);
+        }
+        localStorage.setItem(STORAGE_KEY_MODEL, model);
+        updateSettingsButtonState();
+        closeModal();
+      });
+
+      btnDeleteKey.addEventListener('click', () => {
+        localStorage.removeItem(STORAGE_KEY_API);
+        apiKeyInput.value = '';
+        updateSettingsButtonState();
+      });
+
+      updateSettingsButtonState();
+    })();
+  </script>
+</body>
+</html>
